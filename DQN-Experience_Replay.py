@@ -1,3 +1,5 @@
+########################## LIBRARIES AND PACKAGES #####################################
+
 from simFrame.environment import Environment
 import simFrame.permittivities as permittivities
 import numpy as np
@@ -59,9 +61,46 @@ y_min = 0
 
 UP, DOWN, LEFT, RIGHT, FLIP = 0, 1, 2, 3, 4
 
+######## DESCRIPTION OF IMPORTANT FUNCTIONS #########
+'''
+----------------------------------------
+THE MOVEMENT (step(action,step)): 
+----------------------------------------
+has a discrete space of 5. The Agent can go UP,DOWN,RIGHT,LEFT and FLIP. By flipping, the agent 
+changes the silicon-nitride pixel with air. The Agent then collects the reward via reward function
+and checks if the episode should be terminated via done function and finally reshapes the state.
+
+STATE RESHAPE: In the beginning our structure is set as a 20x20 (400 pixels) matrix with values set to all 1 
+(meaning silicon-nitride).by taking actions we move in this matrix and if we flipp a pixel we change the value 
+from 1 to 0 (meaning air). For feeding this matrix to a neural network, we can reshape it to a 1x400 array containing
+all the values of 0s and 1s. In the end we should also append the values of position to the 1x400 array.
+
+For helping the neural network to make better decisions, it is better if we normilize the position values also between 
+0 and 1. But it should be done carefully.
+
+----------------------------------------
+THE REWARD FUNCTION (get_reward()):
+----------------------------------------
+base efficiency, when no pixels are flipped is about 8%. It can be calculated via "env.evaluate()". 
+In each time step the efficieny is observed and compared to the previous time step. If we have an increse in efficiency, 
+the "reward = 1" is given to the agent and the base efficiency is updated to current efficiency. If not the "reward = 0"
+
+---------------------------------------- 
+THE DONE FUNCTION (get_done()):
+----------------------------------------
+This function determines when the episode should be terminated. In this version we consider the episode done, when
+200 steps is taken.
+
+----------------------------------------
+THE RESET FUNCTION (reset()):
+----------------------------------------
+Using the mother function "env.resetStructure()", we can reset all the values of structure to 1. then reshape the state
+and append the position (0,0) which indicates top left corner to the reshaped state. set the value of efficiency and
+setting the base efficiency back to 8% again.
+'''
+
 '''note that x,y are not actual coordinates! x is the number of rows and y is the 
 number of columns.'''
-
 
 class Player(gym.Env):
 
@@ -80,7 +119,7 @@ class Player(gym.Env):
 
     def get_reward(self):
 
-        efficiency_evaluation = env.evaluate()
+        efficiency_evaluation = slef.base_efficiency
 
         if efficiency_evaluation > self.base_efficiency:
             reward = 1
