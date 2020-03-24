@@ -113,13 +113,15 @@ class Player(gym.Env):
         self.x = 0
         self.y = 0
         self.base_efficiency = 0.088
+        self.updated_efficiency = 0
 
         self.action_space = spaces.Discrete(5)
         #self.observation_space = spaces.Discrete((2 ** 25) * 25)
 
     def get_reward(self):
 
-        efficiency_evaluation = slef.base_efficiency
+        efficiency_evaluation = env.evaluate()
+        self.updated_efficiency = efficiency_evaluation
 
         if efficiency_evaluation > self.base_efficiency:
             reward = 1
@@ -175,7 +177,7 @@ class Player(gym.Env):
                 self.y = y_min
 
         elif action == FLIP:
-            print(env.flipPixel([self.x, self.y]))
+            env.flipPixel([self.x, self.y])
 
         #print('FIGURE OF MERIT IS:', env.evaluate())
         reward += self.get_reward()
@@ -189,6 +191,10 @@ class Player(gym.Env):
         reshaped_state = np.append(reshaped_structure, (self.x, self.y))
 
         state = reshaped_state
+        
+        print('CURRENT POSITION OF AGENT: ', (self.x, self.y))    # This part is for control
+        print(env.structure)                                      # This part is for control
+        print('EFFICIENCY IS:', self.updated_efficiency)          # This part is for control
 
         return state, reward, done
 
