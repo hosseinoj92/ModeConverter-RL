@@ -172,12 +172,6 @@ class Player(gym.Env):
             else:
                 self.x = x_min
 
-        elif action == DOWN:
-            if self.y > y_threshold:
-                self.y = self.y - 1
-            else:
-                self.y = y_min
-
         elif action == FLIP:
             env.flipPixel([self.x, self.y])
 
