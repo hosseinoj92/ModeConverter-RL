@@ -45,4 +45,6 @@ setting the base efficiency back to 8% again.
 
 # DQN 5x5
 
-Here the size of the frame is reduced or better to say, the size of pixels increased fourfold. also 2 little changes has been applied. first, instead of a zero reward for not increasing the efficiency, a negative reward or penalty is given to the agent. Also the done steps reduced to 50 from 200.
+Here the size of the frame is reduced or better to say, the size of pixels increased fourfold. also 2 little changes has been applied. first, instead of a zero reward for not increasing the efficiency, a negative reward or penalty is given to the agent, the reward is not just one +1 if it increases efficiency in a step, rather the difference of the efficiency is taken into account reward. For making it more conveniant, the difference value is multiplied by 100.
+
+Another thing which has been changed is the movement. So if the agent hits the wall, it doesnt start from the beginning of the axis. it just stays there in the same place.
