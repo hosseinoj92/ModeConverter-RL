@@ -97,7 +97,7 @@ class Player(gym.Env):
 
     def get_done(self, step):
 
-        if step == 20:
+        if step == 50:
             done = True
         else:
             done = False
