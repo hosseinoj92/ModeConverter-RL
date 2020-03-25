@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 
 dims = [150, 100, 1]
 env = Environment(dimensions=dims,
-                  designArea=[20, 20],  # the area that is to be changed pixel wise
-                  structureScalingFactor=3,
+                  designArea=[5, 5],  # the area that is to be changed pixel wise
+                  structureScalingFactor=12,
                   # pixels in designArea will be scaled up by this factor for the simulation.
                   waveguides=[[(0, 44), (dims[0] / 2, 56)], [(dims[0] / 2, 35), (dims[0], 65)]],
                   # Array with components [(x1,y1), (x2,y2)]
@@ -43,7 +43,7 @@ producePlots = 0
 
 # Setting initial structure
 
-env.setStructure(np.ones(400).reshape(20, 20))
+env.setStructure(np.ones(25).reshape(5, 5))
 
 
 def figureOfMerit(overlaps):
@@ -54,47 +54,13 @@ env.setFOM(figureOfMerit)
 
 ######################### EXTENDING THE ENVIRONMENT WITH DEFINING THE ACTION TAKER #################################
 
-x_threshold = 19
-y_threshold = 19
+x_threshold = 4
+y_threshold = 4
 x_min = 0
 y_min = 0
 
 UP, DOWN, LEFT, RIGHT, FLIP = 0, 1, 2, 3, 4
 
-######## DESCRIPTION OF IMPORTANT FUNCTIONS #########
-'''
-----------------------------------------
-THE MOVEMENT (step(action,step)): 
-----------------------------------------
-has a discrete space of 5. The Agent can go UP,DOWN,RIGHT,LEFT and FLIP. By flipping, the agent 
-changes the silicon-nitride pixel with air. The Agent then collects the reward via reward function
-and checks if the episode should be terminated via done function and finally reshapes the state.
-It is worth mentioning that if the agent hits the walls, it will reset form the opposite side. for example,
-if we are at maximum right (max(x), y), taking the "RIGHT" action will take the agent to position (0,y) and the same for y.
-STATE RESHAPE: In the beginning our structure is set as a 20x20 (400 pixels) matrix with values set to all 1 
-(meaning silicon-nitride).by taking actions we move in this matrix and if we flipp a pixel we change the value 
-from 1 to 0 (meaning air). For feeding this matrix to a neural network, we can reshape it to a 1x400 array containing
-all the values of 0s and 1s. In the end we should also append the values of position to the 1x400 array.
-For helping the neural network to make better decisions, it is better if we normilize the position values also between 
-0 and 1. But it should be done carefully.
-----------------------------------------
-THE REWARD FUNCTION (get_reward()):
-----------------------------------------
-base efficiency, when no pixels are flipped is about 8%. It can be calculated via "env.evaluate()". 
-In each time step the efficieny is observed and compared to the previous time step. If we have an increse in efficiency, 
-the "reward = 1" is given to the agent and the base efficiency is updated to current efficiency. If not the "reward = 0"
----------------------------------------- 
-THE DONE FUNCTION (get_done()):
-----------------------------------------
-This function determines when the episode should be terminated. In this version we consider the episode done, when
-200 steps is taken.
-----------------------------------------
-THE RESET FUNCTION (reset()):
-----------------------------------------
-Using the mother function "env.resetStructure()", we can reset all the values of structure to 1. then reshape the state
-and append the position (0,0) which indicates top left corner to the reshaped state. set the value of efficiency and
-setting the base efficiency back to 8% again.
-'''
 
 '''note that x,y are not actual coordinates! x is the number of rows and y is the 
 number of columns.'''
@@ -131,7 +97,7 @@ class Player(gym.Env):
 
     def get_done(self, step):
 
-        if step == 200:
+        if step == 20:
             done = True
         else:
             done = False
@@ -185,7 +151,7 @@ class Player(gym.Env):
         # Reshaping the state from a nxn matrix to a 1xn^2 matrix,
         # AND Appending the position of the action taker to the states:
 
-        reshaped_structure = np.reshape(env.structure, (1, 400))
+        reshaped_structure = np.reshape(env.structure, (1, 25))
         reshaped_state = np.append(reshaped_structure, (self.x, self.y))
 
         state = reshaped_state
@@ -199,7 +165,7 @@ class Player(gym.Env):
     def reset(self):
 
         env.resetStructure()  # resets the Environment to all silicon ( with values = 1 )
-        reset_reshaped_structure = np.reshape(env.structure, (1, 400))
+        reset_reshaped_structure = np.reshape(env.structure, (1, 25))
         reset_reshaped_state = np.append(reset_reshaped_structure, (0, 0))
         state = reset_reshaped_state
 
@@ -244,8 +210,8 @@ LongTensor = torch.LongTensor
 
 ##### PARAMS #####
 learning_rate = 0.01
-num_episodes = 500
-gamma = 0.9
+num_episodes = 300
+gamma = 0.999
 
 hidden_layer = 64
 
@@ -267,7 +233,7 @@ def calculate_epsilon(steps_done):
     return epsilon
 
 
-number_of_inputs = 402
+number_of_inputs = 27
 number_of_outputs = gamePlayer.action_space.n
 
 
