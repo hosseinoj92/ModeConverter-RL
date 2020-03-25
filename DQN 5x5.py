@@ -88,16 +88,18 @@ class Player(gym.Env):
         self.updated_efficiency = efficiency_evaluation
 
         if efficiency_evaluation > self.base_efficiency:
-            reward = 1
+            reward = (efficiency_evaluation - self.base_efficiency) * 100
             self.base_efficiency = efficiency_evaluation
+            print('YOHOO I GOT A REWARD! : ', reward)
+
         else:
-            reward = -0.2
+            reward = -0.1
 
         return reward
 
     def get_done(self, step):
 
-        if step == 50:
+        if step == 100:
             done = True
         else:
             done = False
@@ -114,35 +116,29 @@ class Player(gym.Env):
             if self.y < y_threshold:
                 self.y = self.y + 1
             else:
-                self.y = y_min
+                self.y = y_threshold
 
         elif action == LEFT:
             if self.y > y_min:
                 self.y = self.y - 1
             else:
-                self.y = y_threshold
+                self.y = y_min
 
         elif action == UP:
             if self.x > x_min:
                 self.x = self.x - 1
             else:
-                self.x = x_threshold
+                self.x = x_min
 
         elif action == DOWN:
             if self.x < x_threshold:
                 self.x = self.x + 1
             else:
-                self.x = x_min
-
-        elif action == DOWN:
-            if self.y > y_threshold:
-                self.y = self.y - 1
-            else:
-                self.y = y_min
+                self.x = x_threshold
 
         elif action == FLIP:
             env.flipPixel([self.x, self.y])
-
+            
         # print('FIGURE OF MERIT IS:', env.evaluate())
         reward += self.get_reward()
 
@@ -155,7 +151,10 @@ class Player(gym.Env):
         reshaped_state = np.append(reshaped_structure, (self.x, self.y))
 
         state = reshaped_state
-
+        
+        if self.updated_efficiency >= 0.4:
+            np.savetxt("Structure.csv", env.structure, delimiter=",",fmt='%d')
+  
         print('CURRENT POSITION OF AGENT: ', (self.x, self.y))  # This part is for control
         print(env.structure)  # This part is for control
         print('EFFICIENCY IS:', self.updated_efficiency)  # This part is for control
