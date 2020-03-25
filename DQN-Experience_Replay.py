@@ -69,6 +69,8 @@ THE MOVEMENT (step(action,step)):
 has a discrete space of 5. The Agent can go UP,DOWN,RIGHT,LEFT and FLIP. By flipping, the agent 
 changes the silicon-nitride pixel with air. The Agent then collects the reward via reward function
 and checks if the episode should be terminated via done function and finally reshapes the state.
+It is worth mentioning that if the agent hits the walls, it will reset form the opposite side. for example,
+if we are at maximum right (max(x), y), taking the "RIGHT" action will take the agent to position (0,y) and the same for y.
 
 STATE RESHAPE: In the beginning our structure is set as a 20x20 (400 pixels) matrix with values set to all 1 
 (meaning silicon-nitride).by taking actions we move in this matrix and if we flipp a pixel we change the value 
@@ -127,7 +129,7 @@ class Player(gym.Env):
             reward = 1
             self.base_efficiency = efficiency_evaluation
         else:
-            reward = 0
+            reward = -0.2
 
         return reward
 
@@ -247,7 +249,7 @@ LongTensor = torch.LongTensor
 ##### PARAMS #####
 learning_rate = 0.01
 num_episodes = 500
-gamma = 0.8
+gamma = 0.9
 
 hidden_layer = 64
 
