@@ -42,3 +42,7 @@ THE RESET FUNCTION (reset()):
 Using the mother function "env.resetStructure()", we can reset all the values of structure to 1. then reshape the state
 and append the position (0,0) which indicates top left corner to the reshaped state. set the value of efficiency and
 setting the base efficiency back to 8% again.
+
+# DQN 5x5
+
+Here the size of the frame is reduced or better to say, the size of pixels increased fourfold. also 2 little changes has been applied. first, instead of a zero reward for not increasing the efficiency, a negative reward or penalty is given to the agent. Also the done steps reduced to 50 from 200.
