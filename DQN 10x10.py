@@ -15,6 +15,7 @@ import random
 import math
 import time
 import matplotlib.pyplot as plt
+from csv import writer
 
 ########################### IMPORTING SIMFRAME ENVIRONMENT ###########################
 
@@ -59,12 +60,23 @@ y_threshold = 9
 x_min = 0
 y_min = 0
 
+print_counter = 0
+
 UP, DOWN, LEFT, RIGHT, FLIP = 0, 1, 2, 3, 4
 
 
 '''note that x,y are not actual coordinates! x is the number of rows and y is the 
 number of columns.'''
 
+
+def append_to_csv(file_name, matrix, efficiency):
+    with open(file_name, 'a+', newline='') as write_obj:
+        csv_writer = writer(write_obj)
+
+        for i in range(len(matrix)):
+            csv_writer.writerow(matrix[i])
+        csv_writer.writerow(['The efficiency was: %.3f' %efficiency])
+        csv_writer.writerow(['----------------------------'])
 
 class Player(gym.Env):
 
@@ -78,6 +90,9 @@ class Player(gym.Env):
         self.y = 0
         self.base_efficiency = 0.088
         self.updated_efficiency = 0
+        self.efficiency_to_save = 0.4
+
+        self.printer_counter = 0
 
         self.action_space = spaces.Discrete(5)
         # self.observation_space = spaces.Discrete((2 ** 25) * 25)
@@ -90,7 +105,8 @@ class Player(gym.Env):
         if efficiency_evaluation > self.base_efficiency:
             reward = (efficiency_evaluation - self.base_efficiency) * 100
             self.base_efficiency = efficiency_evaluation
-            print('YOHOO I GOT A REWARD! : ', reward)
+
+            print(' ###### YOHOO I GOT A REWARD! ####### : ', reward)
 
         else:
             reward = -0.1
@@ -99,7 +115,7 @@ class Player(gym.Env):
 
     def get_done(self, step):
 
-        if step == 5:
+        if step == 100:
             done = True
         else:
             done = False
@@ -152,8 +168,11 @@ class Player(gym.Env):
 
         state = reshaped_state
 
-        if self.updated_efficiency >= 0.4:
-            np.savetxt("Structure.csv", env.structure, delimiter=",",fmt='%d')
+        if self.updated_efficiency >= self.efficiency_to_save:
+            append_to_csv('structure.csv', env.structure.astype(int), self.updated_efficiency)
+            self.efficiency_to_save += 0.1
+            self.printer_counter += 1
+            print('figure of Merit is: ', env.evaluate(plot=1, plotDir='/home/hosseinoj/Desktop/simulations/%i/' % self.printer_counter))
 
         print('CURRENT POSITION OF AGENT: ', (self.x / 10, self.y / 10))  # This part is for control
         print(env.structure)  # This part is for control
@@ -348,7 +367,3 @@ for i_episode in range(num_episodes):
 
             break
 
-print(env.structure)
-print('FIGURE OF MERIT IS:', env.evaluate())
-
-print('figure of Merit is: ', env.evaluate(plot=1, plotDir='/home/hosseinoj/Desktop/simulations/01/'))
