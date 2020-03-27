@@ -102,14 +102,14 @@ class Player(gym.Env):
         efficiency_evaluation = env.evaluate()
         self.updated_efficiency = efficiency_evaluation
 
-        if efficiency_evaluation > self.base_efficiency:
+        if efficiency_evaluation > self.base_efficiency and fficiency_evaluation - self.base_efficiency > 0.02:
             reward = (efficiency_evaluation - self.base_efficiency) * 100
             self.base_efficiency = efficiency_evaluation
 
             print(' ###### YOHOO I GOT A REWARD! ####### : ', reward)
 
         else:
-            reward = -0.1
+            reward = -0.01
 
         return reward
 
