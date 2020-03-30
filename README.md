@@ -55,14 +55,14 @@ In this try a couple of things have changed.
 
 (a): REWARD FUNCTION:
 
-    i: The reward function not only checks the previous reward to decide whether to give a reward or not (which is the difference of two rewards. but also checks if the new updated reward is at least 2% greater than the previous reward. in The previous try, even if the difference was 0.000001, it stil concidered a reward.
+i: The reward function not only checks the previous reward to decide whether to give a reward or not (which is the difference of two rewards. but also checks if the new updated reward is at least 2% greater than the previous reward. in The previous try, even if the difference was 0.000001, it stil concidered a reward.
     
-    ii: There is a little negative reward given as a penalty to the agent if it takes a bad action. This might help because the agent always look forward to maximize the cumulative rewards, so it might be helpful if it get a penalty, so it avoids the wrong moves more.
+ii: There is a little negative reward given as a penalty to the agent if it takes a bad action. This might help because the agent always look forward to maximize the cumulative rewards, so it might be helpful if it get a penalty, so it avoids the wrong moves more.
     
  (b):TERMINATION FUNCTION:
  
-    i: The get_done() function doesnt terminate the episode explicitly after a certain number of episodes. It takes for example 100 steps without termination, and then in the 100th episode, it checks the sum of last 20 episodes. If its less than a certain number, it will terminate the episode, but if it achives good result, it will be allowed to take an extra 10 steps to explore more!
+i: The get_done() function doesnt terminate the episode explicitly after a certain number of episodes. It takes for example 100 steps without termination, and then in the 100th episode, it checks the sum of last 20 episodes. If its less than a certain number, it will terminate the episode, but if it achives good result, it will be allowed to take an extra 10 steps to explore more!
     
 (c): SAVING THE GRAPH AND KEEPING RECORDS:
 
-    i: There is also a part implemented, which the agent reaches 40% of efficiency, The structure will be saved in a csv file and the simulation animations will be saved in another file. in each time it saves, the goal efficiency will be increased by 10%. so next time it should reache 50%, 60% and so on.
+i: There is also a part implemented, which the agent reaches 40% of efficiency, The structure will be saved in a csv file and the simulation animations will be saved in another file. in each time it saves, the goal efficiency will be increased by 10%. so next time it should reache 50%, 60% and so on.
