@@ -60,9 +60,7 @@ y_threshold = 9
 x_min = 0
 y_min = 0
 
-print_counter = 0
-
-UP, DOWN, LEFT, RIGHT, FLIP = 0, 1, 2, 3, 4
+UP, FLIP_UP, DOWN, FLIP_DOWN, LEFT, FLIP_LEFT, RIGHT, FLIP_RIGHT = 0, 1, 2, 3, 4, 5, 6, 7
 
 
 '''note that x,y are not actual coordinates! x is the number of rows and y is the 
@@ -78,7 +76,7 @@ def append_to_csv(file_name, matrix, efficiency):
         csv_writer.writerow(['The efficiency was: %.3f' %efficiency])
         csv_writer.writerow(['----------------------------'])
 
-class Player(gym.Env):
+class Player:
 
     def __init__(self, environment: Environment):
 
@@ -92,9 +90,12 @@ class Player(gym.Env):
         self.updated_efficiency = 0
         self.efficiency_to_save = 0.4
 
+        self.max_time_steps = 100
+        self.reward_list = []
+
         self.printer_counter = 0
 
-        self.action_space = spaces.Discrete(5)
+        self.action_space = spaces.Discrete(8)
         # self.observation_space = spaces.Discrete((2 ** 25) * 25)
 
     def get_reward(self):
@@ -102,33 +103,50 @@ class Player(gym.Env):
         efficiency_evaluation = env.evaluate()
         self.updated_efficiency = efficiency_evaluation
 
-        if efficiency_evaluation > self.base_efficiency and fficiency_evaluation - self.base_efficiency > 0.02:
+        if efficiency_evaluation > self.base_efficiency and efficiency_evaluation - self.base_efficiency > 0.02:
             reward = (efficiency_evaluation - self.base_efficiency) * 100
             self.base_efficiency = efficiency_evaluation
 
-            print(' ###### YOHOO I GOT A REWARD! ####### : ', reward)
+            print(' ###### YOOHOO I GOT A REWARD! ####### : ', reward)
 
         else:
             reward = -0.01
 
         return reward
 
-    def get_done(self, step):
+    def get_done(self, time_step):
 
-        if step == 100:
-            done = True
-        else:
+        if time_step < self.max_time_steps:
             done = False
+
+        elif time_step == self.max_time_steps:
+            if sum(self.reward_list[-20:]) < 20:
+                done = True
+            else:
+                done = False
+                self.max_time_steps += 10
 
         return done
 
-    def step(self, action, step):
+    def reset_max_time_steps(self):
+        self.max_time_steps = 100
 
-        # assert self.action_space.contains(action)
+    def step(self, action, time_step):
+
+        assert self.action_space.contains(action)
 
         reward = 0
 
         if action == RIGHT:
+            if self.y < y_threshold:
+                self.y = self.y + 1
+            else:
+                self.y = y_threshold
+
+
+        if action == FLIP_RIGHT:
+            env.flipPixel([self.x, self.y])
+
             if self.y < y_threshold:
                 self.y = self.y + 1
             else:
@@ -140,7 +158,23 @@ class Player(gym.Env):
             else:
                 self.y = y_min
 
+        elif action == FLIP_LEFT:
+            env.flipPixel([self.x, self.y])
+
+            if self.y > y_min:
+                self.y = self.y - 1
+            else:
+                self.y = y_min
+
         elif action == UP:
+            if self.x > x_min:
+                self.x = self.x - 1
+            else:
+                self.x = x_min
+
+        elif action == FLIP_UP:
+            env.flipPixel([self.x, self.y])
+
             if self.x > x_min:
                 self.x = self.x - 1
             else:
@@ -152,19 +186,27 @@ class Player(gym.Env):
             else:
                 self.x = x_threshold
 
-        elif action == FLIP:
+        elif action == FLIP_DOWN:
             env.flipPixel([self.x, self.y])
+
+            if self.x < x_threshold:
+                self.x = self.x + 1
+            else:
+                self.x = x_threshold
+
+
 
         # print('FIGURE OF MERIT IS:', env.evaluate())
         reward += self.get_reward()
+        self.reward_list.append(reward)
 
-        done = self.get_done(step)
+        done = self.get_done(time_step)
 
         # Reshaping the state from a nxn matrix to a 1xn^2 matrix,
         # AND Appending the position of the action taker to the states:
 
         reshaped_structure = np.reshape(env.structure, (1, 100))
-        reshaped_state = np.append(reshaped_structure, (self.x, self.y))
+        reshaped_state = np.append(reshaped_structure, (self.x/10, self.y/10))
 
         state = reshaped_state
 
@@ -174,7 +216,7 @@ class Player(gym.Env):
             self.printer_counter += 1
             print('figure of Merit is: ', env.evaluate(plot=1, plotDir='/home/hosseinoj/Desktop/simulations/%i/' % self.printer_counter))
 
-        print('CURRENT POSITION OF AGENT: ', (self.x / 10, self.y / 10))  # This part is for control
+        print('CURRENT POSITION OF AGENT: ', (self.x, self.y))  # This part is for control
         print(env.structure)  # This part is for control
         print('EFFICIENCY IS:', self.updated_efficiency)  # This part is for control
 
@@ -239,8 +281,6 @@ batch_size = 32
 egreedy = 0.9
 egreedy_final = 0.02
 egreedy_decay = 500
-
-
 ##################
 
 ###### DEFINING THE EXPLORATION/EXPLOITATION TRADE OFF FUNCTION ##############
@@ -336,11 +376,11 @@ for i_episode in range(num_episodes):
 
     state = gamePlayer.reset()
 
-    step = 0
+    time_step = 0
     # for step in range(100):
     while True:
 
-        step += 1
+        time_step += 1
         frames_total += 1
 
         epsilon = calculate_epsilon(frames_total)
@@ -348,7 +388,7 @@ for i_episode in range(num_episodes):
         # action = env.action_space.sample()
         action = qnet_agent.select_action(state, epsilon)
 
-        new_state, reward, done = gamePlayer.step(action, step)
+        new_state, reward, done = gamePlayer.step(action, time_step)
 
         memory.push(state, action, new_state, reward, done)
 
@@ -357,10 +397,13 @@ for i_episode in range(num_episodes):
         state = new_state
 
         if done:
+            gamePlayer.reset_max_time_steps()
+
             episodes_total += 1
             end = time.time()
+
             print('########################################')
-            print('Episode finished after %i steps' % step)
+            print('Episode finished after %i steps' % time_step)
             print('Sofar %i episodes have been completed:' % episodes_total)
             print('elapsed time was ( %d ) seconds: ' %(end-start))
             print('########################################')
