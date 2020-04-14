@@ -29,6 +29,7 @@ def import_data_to_csv(file_name, sum_rewards, episode, steps_taken):
 
 structure = np.zeros(25).reshape(5, 5)
 
+
 goal_structure = np.ones(25).reshape(5, 5)
 
 right, left, up, down, flip = 0, 1, 2, 3, 4
@@ -48,12 +49,16 @@ class Player:
         self.max_time_step = 50
         self.time_step = 0
         self.reward_list = []
-        self.sum_reward_list = []
+
         self.sum_rewards = []
 
+        self.gather_positions = []
+
+        self.position_state = np.zeros(25).reshape(5, 5)
+        self.structure_state = np.zeros(25).reshape(5, 5)
 
         self.action_space = spaces.Discrete(5)
-        self.observation_space = 27
+        self.observation_space = 50
 
     def get_done(self, time_step):
 
@@ -67,24 +72,17 @@ class Player:
 
     def flip_pixel(self):
 
-        if structure[self.x][self.y] == 1:
-            structure[self.x][self.y] = 0.0
+        if self.structure_state[self.x][self.y] == 1:
+            self.structure_state[self.x][self.y] = 0.0
 
-        elif structure[self.x][self.y] == 0:
-            structure[self.x][self.y] = 1
-
-    def get_reward(self):
-
-        if structure[self.x][self.y] == 1:
-            reward = 1
-
-        elif structure[self.x][self.y] == 0.0:
-            reward = 0
-
-        return reward
+        elif self.structure_state[self.x][self.y] == 0:
+            self.structure_state[self.x][self.y] = 1
 
     def step(self, action, time_step):
 
+        self.position_state = np.zeros(25).reshape(5, 5)
+
+        reward = 0
 
         if action == right:
 
@@ -93,12 +91,16 @@ class Player:
             else:
                 self.y = y_threshold
 
+            self.position_state[self.x][self.y] = 1
+
         if action == left:
 
             if self.y > y_min:
                 self.y = self.y - 1
             else:
                 self.y = y_min
+
+            self.position_state[self.x][self.y] = 1
 
         if action == up:
 
@@ -107,6 +109,8 @@ class Player:
             else:
                 self.x = x_min
 
+            self.position_state[self.x][self.y] = 1
+
         if action == down:
 
             if self.x < x_threshold:
@@ -114,31 +118,49 @@ class Player:
             else:
                 self.x = x_threshold
 
+            self.position_state[self.x][self.y] = 1
+
         if action == flip:
             self.flip_pixel()
 
-        reward = self.get_reward()
+            self.position_state[self.x][self.y] = 1
+
+            if self.structure_state[self.x][self.y] == 1:
+                reward = 1
+            else:
+                reward = -1
+
+
         self.reward_list.append(reward)
+
         done = self.get_done(time_step)
 
-        reshaped_structure = np.reshape(structure, (1, 25))
-        reshaped_state = np.append(reshaped_structure, (np.float64(self.x / 4), np.float64(self.y / 4)))
+        reshaped_structure = np.reshape(self.structure_state, (1, 25))
+        reshaped_position = np.reshape(self.position_state, (1, 25))
+        reshaped_state = np.append(reshaped_structure, reshaped_position)
         state = reshaped_state
 
         return state, reward, done
 
     def reset(self):
 
-        structure = np.zeros(25).reshape(5, 5)
-        reset_reshaped_structure = np.reshape(structure, (1, 25))
-        reset_reshaped_state = np.append(reset_reshaped_structure, (0, 0))
+        self.structure_state= np.zeros(25).reshape(5, 5)
+        self.position_state = np.zeros(25).reshape(5, 5)
+
+        reset_reshaped_structure = np.reshape(self.structure_state, (1, 25))
+        reset_reshaped_position = np.reshape(self.position_state, (1, 25))
+        reset_reshaped_state = np.append(reset_reshaped_structure, reset_reshaped_position)
         state = reset_reshaped_state
+
 
         self.x = 0
         self.y = 0
         self.reward_list = []
 
+        self.gather_positions = []
+
         return state
+
 
 
 ################################################
@@ -149,7 +171,7 @@ class ExperienceReplay(object):
         self.memory = []
         self.position = 0
 
-    def push(self, state, action, new_state, reward, done):
+    def push(self, state, action, new_state, reward, done):          # Used for adding data to the ER
         transition = (state, action, new_state, reward, done)
 
         if self.position >= len(self.memory):
@@ -159,14 +181,14 @@ class ExperienceReplay(object):
 
         self.position = (self.position + 1) % self.capacity
 
-    def sample(self, batch_size):
+    def sample(self, batch_size):                                  # Used for taking sample data from Batch
         return zip(*random.sample(self.memory, batch_size))
 
-    def __len__(self):
+    def __len__(self):                                            # Used for calculating current memory size
         return len(self.memory)
 
 
-######## Creating Instance #######                
+######## Creating Instance #######
 gamePlayer = Player()
 ##################################
 
@@ -177,20 +199,22 @@ LongTensor = torch.LongTensor
 
 ##### PARAMS #####################
 learning_rate = 0.01
-num_episodes = 30000
-gamma = 0.999
+num_episodes = 10000
+gamma = 0.7
 
-hidden_layer1 = 128
-hidden_layer2 = 64
+hidden_layer1 = 64
+#hidden_layer2 = 256
 
-replay_mem_size = 50000
+replay_mem_size = 1000000
 batch_size = 32
 
+update_target_frequency = 5000
+
 egreedy = 0.9
-egreedy_final = 0.02
-egreedy_decay = 30000
+egreedy_final = 0.002
+egreedy_decay = 5000
 
-
+clip_error = True
 ##################################
 
 def calculate_epsilon(steps_done):
@@ -211,20 +235,17 @@ class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
         self.linear1 = nn.Linear(number_of_inputs, hidden_layer1)
-        self.linear2 = nn.Linear(hidden_layer1, hidden_layer2)
-        self.linear3 = nn.Linear(hidden_layer2, number_of_outputs)
+        self.linear2 = nn.Linear(hidden_layer1, number_of_outputs)
 
-        self.activation = nn.Tanh()
-        # self.activation = nn.ReLU()
+        #self.activation = nn.Tanh()
+        self.activation = nn.ReLU()
 
     def forward(self, x):
         output1 = self.linear1(x)
         output1 = self.activation(output1)
         output2 = self.linear2(output1)
-        output2 = self.activation(output2)
-        output3 = self.linear3(output2)
 
-        return output3
+        return output2
 
 
 ######################################################
@@ -232,9 +253,13 @@ class NeuralNetwork(nn.Module):
 class QNet_Agent():
 
     def __init__(self):
-        self.nn = NeuralNetwork().to(device)
+        self.nn = NeuralNetwork().to(device)  # first neural net
+        self.target_nn = NeuralNetwork().to(device)
+
         self.loss_func = nn.MSELoss()
         self.optimizer = optim.Adam(params=self.nn.parameters(), lr=learning_rate)
+
+        self.update_target_counter = 0
 
     def select_action(self, state, epsilon):
 
@@ -268,7 +293,7 @@ class QNet_Agent():
         action = LongTensor(action).to(device)
         done = Tensor(done).to(device)
 
-        new_state_values = self.nn(new_state).detach()
+        new_state_values = self.target_nn(new_state).detach()
         max_new_state_values = torch.max(new_state_values, 1)[0]
         target_value = reward + (1 - done) * gamma * max_new_state_values
 
@@ -278,7 +303,17 @@ class QNet_Agent():
 
         self.optimizer.zero_grad()
         loss.backward()
+
+        if clip_error:
+            for param in self.nn.parameters():
+                param.grad.data.clamp_(-1, 1)
+
         self.optimizer.step()
+
+        if self.update_target_counter % update_target_frequency == 0:
+            self.target_nn.load_state_dict(self.nn.state_dict())
+
+        self.update_target_counter += 1
 
 
 memory = ExperienceReplay(replay_mem_size)
@@ -297,7 +332,7 @@ for i_episode in range(num_episodes):
     state = gamePlayer.reset()
 
     time_step = 0
-    # for step in range(100):
+
     while True:
 
         time_step += 1
@@ -305,7 +340,6 @@ for i_episode in range(num_episodes):
 
         epsilon = calculate_epsilon(frames_total)
 
-        # action = env.action_space.sample()
         action = qnet_agent.select_action(state, epsilon)
 
         new_state, reward, done = gamePlayer.step(action, time_step)
@@ -315,6 +349,7 @@ for i_episode in range(num_episodes):
         qnet_agent.optimize()
 
         state = new_state
+
 
         if done:
             steps_total.append(time_step)
@@ -334,9 +369,11 @@ for i_episode in range(num_episodes):
             print('########################################')
 
 
+
             break
 
-print( structure)
+
+
 plt.figure(figsize=(12, 5))
 plt.title("Rewards per Episode")
 plt.bar(torch.arange(episodes_total), gamePlayer.sum_rewards, alpha=0.6, color='green', width=1)
