@@ -66,3 +66,8 @@ i: The get_done() function doesnt terminate the episode explicitly after a certa
 (c): SAVING THE GRAPH AND KEEPING RECORDS:
 
 i: There is also a part implemented, which the agent reaches 40% of efficiency, The structure will be saved in a csv file and the simulation animations will be saved in another file. in each time it saves, the goal efficiency will be increased by 10%. so next time it should reache 50%, 60% and so on.
+
+#  Check DQN
+
+The actual problem was hard to tackle because it was very time consuming and also quite complicated.
+Therefore i created a simple game. a NxN matrix of all zeros should become all ones. The reward is +1 for every 0 turns to one, reward -1 when a 1 turns to zero and and reward zero for just moving around.
